@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+build/
+dist/
+*.spec.bak
+data/*.sqlite
+data/*.sqlite-wal
+data/*.sqlite-shm
+data/*.log
+data/*.txt
+backup/*.sqlite
+.idea/
+.vscode/
