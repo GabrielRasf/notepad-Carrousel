@@ -31,21 +31,30 @@ $env:PATH = "C:\Windows\System32"
 $env:PYTHONPATH = ""
 Remove-Item Env:PYTHONHOME -ErrorAction SilentlyContinue
 
+function Invoke-Portable {
+    param([Parameter(Mandatory = $true)][string[]]$ArgumentList)
+    $process = Start-Process -FilePath $Exe -ArgumentList $ArgumentList -Wait -PassThru -WorkingDirectory $Portable
+    if ($null -eq $process -or $process.ExitCode -ne 0) {
+        throw "O executavel terminou com codigo $($process.ExitCode)."
+    }
+}
+
 Write-Host "Abrindo a interface empacotada..."
-& $Exe --smoke-gui
-if ($LASTEXITCODE -ne 0) { throw "A interface empacotada nao abriu." }
+Invoke-Portable -ArgumentList @("--smoke-gui")
 $Smoke = Join-Path $Portable "data\smoke-result.txt"
 if (-not (Test-Path $Smoke)) { throw "A interface nao gravou o resultado." }
+$SmokeText = Get-Content $Smoke -Raw
+if ($SmokeText -notlike "SMOKE_OK*") { throw $SmokeText }
 
 Write-Host "Conferindo persistencia no executavel..."
-& $Exe --self-test
-if ($LASTEXITCODE -ne 0) { throw "O autoteste do executavel falhou." }
+Invoke-Portable -ArgumentList @("--self-test")
 $Result = Get-Content (Join-Path $Portable "data\selftest-result.txt") -Raw
 if ($Result -notlike "SELFTEST_OK*") { throw $Result }
 
 $Accent = Join-Path $Root "dist\area de trabalho\Notepad Carrossel"
 New-Item -ItemType Directory -Force -Path $Accent | Out-Null
-& $Exe --self-test --root $Accent
-if ($LASTEXITCODE -ne 0) { throw "O autoteste em caminho com espaco falhou." }
+Invoke-Portable -ArgumentList @("--self-test", "--root", $Accent)
+$AccentResult = Get-Content (Join-Path $Accent "data\selftest-result.txt") -Raw
+if ($AccentResult -notlike "SELFTEST_OK*") { throw $AccentResult }
 
 Write-Host "Pasta portatil pronta: $Portable"

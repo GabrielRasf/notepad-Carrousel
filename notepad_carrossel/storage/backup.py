@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import shutil
 import sqlite3
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -156,4 +157,15 @@ class BackupManager:
     def _remove_sidecars(database_path: Path) -> None:
         for suffix in ("-wal", "-shm"):
             sidecar = Path(str(database_path) + suffix)
-            sidecar.unlink(missing_ok=True)
+            for _attempt in range(10):
+                try:
+                    sidecar.unlink(missing_ok=True)
+                    break
+                except PermissionError:
+                    time.sleep(0.05)
+            else:
+                if sidecar.exists():
+                    raise StorageError(
+                        "Não foi possível liberar um arquivo temporário do banco. "
+                        "Feche outras janelas do Notepad Carrossel e tente de novo."
+                    )
